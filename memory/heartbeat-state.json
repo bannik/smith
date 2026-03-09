@@ -1,0 +1,29 @@
+{
+  "lastChecks": {
+    "content_generation": 1741523700,
+    "engagement": 1741523700,
+    "learn_accounts": 1741519509,
+    "self_reflection": null,
+    "daily_report": null,
+    "bootstrap_cycle": 1773098239
+  },
+  "dailyCounts": {
+    "date": "2026-03-09",
+    "likes": 90,
+    "replies": 0,
+    "retweets": 8,
+    "follows": 9,
+    "tweets_posted": 14
+  },
+  "knownIssues": [
+    "Cold replies AND QTs blocked via API (new account restriction) \u2014 OAuth 1.0a and OAuth 2.0 both fail with 403",
+    "Bannik can reply/QT manually via browser \u2014 restriction is API-specific",
+    "Filter @grok from search results",
+    "Use start_time filter for fresh tweets (last 5-20 min)"
+  ],
+  "nextTasks": {
+    "afternoon_thread": "15:00-17:00 UTC \u2014 biggest story of the day",
+    "like_spree": "13:00 UTC \u2014 20 more likes",
+    "tweet": "13:30 UTC \u2014 next scheduled single tweet"
+  }
+}

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Audacity Timeline — Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; padding: 24px; }
+  h1 { font-size: 22px; font-weight: 700; color: #fff; }
+  h3 { font-size: 14px; font-weight: 600; color: #ccc; margin-bottom: 12px; }
+  .subtitle { font-size: 13px; color: #666; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; max-width: 960px; margin-left: auto; margin-right: auto; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .status-dot.on { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+  .status-dot.off { background: #666; }
+  .wrap { max-width: 960px; margin: 0 auto; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #222; margin-bottom: 24px; }
+  .tab { padding: 10px 20px; background: transparent; border: none; border-bottom: 2px solid transparent; color: #666; cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; }
+  .tab:hover { color: #aaa; }
+  .tab.active { background: #1a1a1a; border-bottom-color: #dc2626; color: #fff; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Cards */
+  .cards { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .metric-card { background: #111; border-radius: 8px; padding: 16px; flex: 1; min-width: 140px; }
+  .metric-card .label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .metric-card .value { font-size: 28px; font-weight: 700; color: #fff; }
+  .metric-card .sub { font-size: 11px; color: #666; margin-top: 2px; }
+  .metric-card.red { border-top: 3px solid #dc2626; }
+  .metric-card.orange { border-top: 3px solid #f97316; }
+  .metric-card.yellow { border-top: 3px solid #eab308; }
+  .metric-card.green { border-top: 3px solid #22c55e; }
+
+  .status-card { background: #111; border-radius: 8px; padding: 16px; flex: 1; min-width: 180px; }
+  .status-card .title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .status-card .detail { font-size: 11px; color: #888; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.green { background: #22c55e; }
+  .dot.yellow { background: #eab308; }
+  .dot.gray { background: #666; }
+
+  /* Panel */
+  .panel { background: #111; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+
+  /* Secret input */
+  .secret-group { margin-bottom: 12px; }
+  .secret-group label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; }
+  .secret-row { display: flex; gap: 8px; }
+  .secret-row input { flex: 1; padding: 8px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #e0e0e0; font-size: 13px; outline: none; font-family: inherit; }
+  .secret-row input:focus { border-color: #555; }
+  .secret-row button { padding: 8px 12px; background: #222; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer; font-size: 12px; font-family: inherit; }
+  .secret-row button:hover { background: #2a2a2a; color: #aaa; }
+
+  /* Buttons */
+  .btn { padding: 12px 32px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; font-family: inherit; }
+  .btn-red { background: #dc2626; color: #fff; }
+  .btn-red:hover { background: #b91c1c; }
+  .btn-outline { background: #1a1a1a; color: #888; border: 1px solid #333; }
+  .btn-outline:hover { background: #222; }
+
+  /* Checklist */
+  .checklist-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+  .check-on { color: #22c55e; }
+  .check-off { color: #444; }
+
+  /* Chart bars */
+  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding: 0 8px; }
+  .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .bar-stack { display: flex; flex-direction: column-reverse; gap: 2px; width: 100%; align-items: center; }
+  .bar { border-radius: 3px 3px 0 0; width: 70%; min-width: 16px; transition: height 0.3s; }
+  .bar-label { font-size: 11px; color: #666; margin-top: 4px; }
+  .chart-legend { display: flex; gap: 16px; margin-top: 12px; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Line chart */
+  .line-chart { position: relative; height: 160px; padding: 0 8px; }
+  .line-chart svg { width: 100%; height: 100%; }
+
+  /* Strategy grid */
+  .strategy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .strategy-item { padding: 12px; background: #0a0a0a; border-radius: 6px; border: 1px solid #22c55e33; display: flex; justify-content: space-between; align-items: center; }
+  .strategy-item.pending { border-color: #33333366; }
+  .strategy-item .name { font-size: 13px; font-weight: 500; color: #ccc; }
+  .strategy-item .freq { font-size: 11px; color: #666; }
+
+  /* Budget thresholds */
+  .threshold { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #0a0a0a; border-radius: 6px; margin-bottom: 8px; }
+  .threshold .pct { font-size: 13px; color: #888; min-width: 60px; }
+  .threshold .action { font-size: 13px; color: #ccc; }
+  .threshold .indicator { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #1a1a1a; text-align: center; font-size: 11px; color: #333; }
+
+  @media (max-width: 640px) {
+    .cards { flex-direction: column; }
+    .strategy-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>The Audacity Timeline</h1>
+      <p class="subtitle">News. Commentary. Mostly disbelief.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="status-dot off" id="agentDot"></span>
+      <span style="font-size:13px;color:#666" id="agentLabel">Agent Stopped</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="settings">Settings</button>
+    <button class="tab" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="reflect">Self-Reflection</button>
+    <button class="tab" data-tab="costs">API Usage</button>
+  </div>
+
+  <!-- ═══ SETTINGS TAB ═══ -->
+  <div class="tab-content active" id="tab-settings">
+    <div class="cards" id="statusCards">
+      <div class="status-card">
+        <div class="title"><span class="dot yellow" id="dotClaude"></span> Claude API</div>
+        <div class="detail" id="detailClaude">Enter API key</div>
+      </div>
+      <div class="status-card">
+        <div class="title"><span class="dot yellow" id="dotTwitter"></span> X/Twitter</div>
+        <div class="detail" id="detailTwitter">Enter credentials</div>
+      </div>
+      <div class="status-card">
+        <div class="title"><span class="dot yellow" id="dotTelegram"></span> Telegram</div>
+        <div class="detail" id="detailTelegram">Enter bot token</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Claude API</h3>
+      <div class="secret-group">
+        <label>API Key</label>
+        <div class="secret-row">
+          <input type="password" id="keyAnthropic" placeholder="sk-ant-...">
+          <button onclick="toggleVis(this)">Show</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>X/Twitter API (Pay-as-you-go)</h3>
+      <div class="secret-group">
+        <label>API Key (Consumer Key)</label>
+        <div class="secret-row"><input type="password" id="keyTwitterKey" placeholder="Consumer Key"><button onclick="toggleVis(this)">Show</button></div>
+      </div>
+      <div class="secret-group">
+        <label>API Secret (Consumer Secret)</label>
+        <div class="secret-row"><input type="password" id="keyTwitterSecret" placeholder="Consumer Secret"><button onclick="toggleVis(this)">Show</button></div>
+      </div>
+      <div class="secret-group">
+        <label>Access Token</label>
+        <div class="secret-row"><input type="password" id="keyAccessToken" placeholder="Access Token"><button onclick="toggleVis(this)">Show</button></div>
+      </div>
+      <div class="secret-group">
+        <label>Access Token Secret</label>
+        <div class="secret-row"><input type="password" id="keyAccessSecret" placeholder="Access Token Secret"><button onclick="toggleVis(this)">Show</button></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Telegram</h3>
+      <div class="secret-group">
+        <label>Bot Token</label>
+        <div class="secret-row"><input type="password" id="keyTelegramBot" placeholder="123456:ABC-DEF..."><button onclick="toggleVis(this)">Show</button></div>
+      </div>
+      <div class="secret-group">
+        <label>Chat ID</label>
+        <div class="secret-row"><input type="password" id="keyTelegramChat" placeholder="Your Telegram Chat ID"><button onclick="toggleVis(this)">Show</button></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-bottom:24px">
+      <button class="btn btn-red" id="agentBtn" onclick="toggleAgent()">Start Agent</button>
+      <button class="btn btn-outline" onclick="saveConfig()">Save Config to .env</button>
+    </div>
+
+    <div class="panel">
+      <h3>Setup Checklist</h3>
+      <div id="checklist"></div>
+    </div>
+  </div>
+
+  <!-- ═══ OVERVIEW TAB ═══ -->
+  <div class="tab-content" id="tab-overview">
+    <div class="cards">
+      <div class="metric-card red"><div class="label">Followers</div><div class="value">—</div><div class="sub">Populates as agent runs</div></div>
+      <div class="metric-card orange"><div class="label">Tweets Posted</div><div class="value">—</div><div class="sub">Today</div></div>
+      <div class="metric-card yellow"><div class="label">Replies Sent</div><div class="value">—</div><div class="sub">Today</div></div>
+      <div class="metric-card green"><div class="label">Engagement Rate</div><div class="value">—</div><div class="sub">Needs data</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Weekly Activity</h3>
+      <div class="bar-chart" id="activityChart"></div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div> Tweets</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Replies</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div> Likes Given</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Follower Growth</h3>
+      <div class="line-chart" id="followerChart"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Top Tweets This Week</h3>
+      <p style="font-size:12px;color:#888;font-style:italic">Data populates from post-history.md as the agent runs. Check back after the first full day.</p>
+    </div>
+  </div>
+
+  <!-- ═══ SELF-REFLECTION TAB ═══ -->
+  <div class="tab-content" id="tab-reflect">
+    <div class="panel">
+      <h3>Agent Self-Reflection Log</h3>
+      <p style="font-size:13px;color:#888;line-height:1.6;margin-bottom:16px">
+        The agent runs self-reflection daily at 22:00 UTC. It analyzes which tweets performed best,
+        what topics resonated, and adjusts its content strategy automatically.
+      </p>
+      <div style="padding:16px;background:#0a0a0a;border-radius:6px;border:1px solid #222">
+        <div style="font-size:12px;color:#666;margin-bottom:8px">Latest reflection will appear here...</div>
+        <div style="font-size:12px;color:#555;font-style:italic">
+          Reads from self-reflection-log.md. Run the agent for at least one full day to see data.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Growth Strategy Status</h3>
+      <div class="strategy-grid">
+        <div class="strategy-item"><div><div class="name">Reply to Trending</div><div class="freq">Every 1h (peak)</div></div><span class="dot green"></span></div>
+        <div class="strategy-item"><div><div class="name">Daily Thread</div><div class="freq">15:00-17:00 UTC</div></div><span class="dot green"></span></div>
+        <div class="strategy-item"><div><div class="name">Quote Tweets</div><div class="freq">Every 90m (peak)</div></div><span class="dot green"></span></div>
+        <div class="strategy-item"><div><div class="name">Likes & Follows</div><div class="freq">Every 90m (peak)</div></div><span class="dot green"></span></div>
+        <div class="strategy-item"><div><div class="name">Account Study</div><div class="freq">Every 6h</div></div><span class="dot green"></span></div>
+        <div class="strategy-item"><div><div class="name">Self-Reflection</div><div class="freq">Daily 22:00 UTC</div></div><span class="dot green"></span></div>
+        <div class="strategy-item"><div><div class="name">Telegram Report</div><div class="freq">Daily 22:30 UTC</div></div><span class="dot green"></span></div>
+        <div class="strategy-item pending"><div><div class="name">Substack Newsletter</div><div class="freq">Weekly (Sundays)</div></div><span class="dot gray"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ API USAGE TAB ═══ -->
+  <div class="tab-content" id="tab-costs">
+    <div class="cards">
+      <div class="metric-card red"><div class="label">This Week</div><div class="value">$—</div><div class="sub">Populates from api-costs.md</div></div>
+      <div class="metric-card orange"><div class="label">Month-to-Date</div><div class="value">$—</div><div class="sub">Budget: $50/month</div></div>
+      <div class="metric-card green"><div class="label">Projected Monthly</div><div class="value">$—</div><div class="sub">Needs data</div></div>
+      <div class="metric-card yellow"><div class="label">Budget Remaining</div><div class="value">—</div><div class="sub">$50 budget</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Daily API Costs</h3>
+      <div class="bar-chart" id="costChart"></div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div> Claude API</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> X API</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Budget Thresholds</h3>
+      <div class="threshold"><div class="indicator" style="background:#22c55e"></div><span class="pct">0-80%</span><span class="action">Full operation — all skills active</span></div>
+      <div class="threshold"><div class="indicator" style="background:#eab308"></div><span class="pct">80-90%</span><span class="action">Reduced — essential tweets only, engagement paused</span></div>
+      <div class="threshold"><div class="indicator" style="background:#dc2626"></div><span class="pct">90%+</span><span class="action">Minimal — threads and breaking news only</span></div>
+    </div>
+  </div>
+
+  <div class="footer">The Audacity Timeline — Powered by OpenClaw + Claude</div>
+</div>
+
+<script>
+  const API = 'http://localhost:3847';
+
+  // ── Tab switching ──
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── Toggle password visibility ──
+  function toggleVis(btn) {
+    const input = btn.parentElement.querySelector('input');
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = 'Hide'; }
+    else { input.type = 'password'; btn.textContent = 'Show'; }
+  }
+
+  // ── Draw bar charts ──
+  function drawBarChart(containerId, data, keys, colors, maxVal) {
+    const container = document.getElementById(containerId);
+    if (!container || !data.length) return;
+    const max = maxVal || Math.max(...data.flatMap(d => keys.map(k => d[k] || 0))) || 1;
+    container.innerHTML = data.map(d => {
+      const bars = keys.map((k, i) =>
+        `<div class="bar" style="height:${((d[k] || 0) / max) * 140}px;background:${colors[i]}" title="${k}: ${d[k] || 0}"></div>`
+      ).join('');
+      return `<div class="bar-group"><div class="bar-stack" style="flex-direction:row;gap:3px;align-items:flex-end">${bars}</div><span class="bar-label">${d.day || d.date || ''}</span></div>`;
+    }).join('');
+  }
+
+  // ── Draw line chart as SVG ──
+  function drawLineChart(containerId, data, key, color) {
+    const container = document.getElementById(containerId);
+    if (!container || data.length < 2) {
+      if (container) container.innerHTML = '<div style="text-align:center;color:#555;font-size:12px;padding:40px">Waiting for data...</div>';
+      return;
+    }
+    const max = Math.max(...data.map(d => d[key])) || 1;
+    const w = 880, h = 140, pad = 30;
+    const points = data.map((d, i) => ({
+      x: pad + (i / (data.length - 1)) * (w - pad * 2),
+      y: h - pad - (d[key] / max) * (h - pad * 2),
+      label: d.day || d.date || '', val: d[key]
+    }));
+    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    container.innerHTML = `
+      <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5"/>
+        ${points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${color}"/>`).join('')}
+        ${points.map(p => `<text x="${p.x}" y="${h - 5}" text-anchor="middle" fill="#666" font-size="11">${p.label}</text>`).join('')}
+        ${points.map(p => `<text x="${p.x}" y="${p.y - 10}" text-anchor="middle" fill="#888" font-size="10">${p.val}</text>`).join('')}
+      </svg>`;
+  }
+
+  // ── Fetch live data and update everything ──
+  async function refresh() {
+    let data;
+    try {
+      const res = await fetch(API + '/api/all');
+      data = await res.json();
+    } catch (e) {
+      document.getElementById('agentLabel').textContent = 'Server offline — run: node server.js';
+      document.getElementById('agentLabel').style.color = '#dc2626';
+      document.getElementById('agentDot').className = 'status-dot off';
+      return;
+    }
+
+    const { status, posts, engagement, reflection, costs } = data;
+
+    // ── Agent status ──
+    document.getElementById('agentDot').className = 'status-dot ' + (status.agentRunning ? 'on' : 'off');
+    document.getElementById('agentLabel').textContent = status.agentRunning ? 'Agent Running' : 'Agent Stopped';
+    document.getElementById('agentLabel').style.color = status.agentRunning ? '#22c55e' : '#666';
+    document.getElementById('agentBtn').textContent = status.agentRunning ? 'Stop Agent' : 'Start Agent';
+    document.getElementById('agentBtn').style.background = status.agentRunning ? '#7f1d1d' : '#dc2626';
+
+    // ── Status cards from .env ──
+    const keys = status.envKeys || {};
+    const setDot = (id, color) => { document.getElementById(id).className = 'dot ' + color; };
+
+    if (keys.ANTHROPIC_API_KEY) { setDot('dotClaude', 'green'); document.getElementById('detailClaude').textContent = 'Key configured in .env'; }
+    else { setDot('dotClaude', 'yellow'); document.getElementById('detailClaude').textContent = 'Missing in .env'; }
+
+    if (keys.TWITTER_API_KEY && keys.TWITTER_ACCESS_TOKEN) { setDot('dotTwitter', 'green'); document.getElementById('detailTwitter').textContent = 'Pay-as-you-go — configured'; }
+    else { setDot('dotTwitter', 'yellow'); document.getElementById('detailTwitter').textContent = 'Missing in .env'; }
+
+    if (keys.TELEGRAM_BOT_TOKEN && keys.TELEGRAM_CHAT_ID) { setDot('dotTelegram', 'green'); document.getElementById('detailTelegram').textContent = 'Bot configured in .env'; }
+    else { setDot('dotTelegram', 'yellow'); document.getElementById('detailTelegram').textContent = 'Missing in .env'; }
+
+    // ── Checklist ──
+    const checkItems = [
+      { label: 'Claude API key configured', done: !!keys.ANTHROPIC_API_KEY },
+      { label: 'X/Twitter API Key set', done: !!keys.TWITTER_API_KEY },
+      { label: 'X/Twitter API Secret set', done: !!keys.TWITTER_API_SECRET },
+      { label: 'X/Twitter Access Token set', done: !!keys.TWITTER_ACCESS_TOKEN },
+      { label: 'X/Twitter Access Token Secret set', done: !!keys.TWITTER_ACCESS_TOKEN_SECRET },
+      { label: 'Telegram bot token set', done: !!keys.TELEGRAM_BOT_TOKEN },
+      { label: 'Telegram chat ID set', done: !!keys.TELEGRAM_CHAT_ID },
+      { label: 'OpenClaw agent running', done: status.agentRunning },
+      { label: `Skills loaded (${status.skillCount})`, done: status.skillCount > 0 },
+    ];
+    document.getElementById('checklist').innerHTML = checkItems.map(i =>
+      `<div class="checklist-item"><span class="${i.done ? 'check-on' : 'check-off'}">${i.done ? '✓' : '○'}</span><span style="color:${i.done ? '#aaa' : '#555'}">${i.label}</span></div>`
+    ).join('');
+
+    // ── Overview metrics ──
+    const overviewCards = document.querySelectorAll('#tab-overview .metric-card');
+    const totalTweets = posts.length;
+    const totalEngLikes = engagement.reduce((s, e) => s + e.likes, 0);
+    const totalEngReplies = engagement.reduce((s, e) => s + e.replies, 0);
+    const totalEngFollows = engagement.reduce((s, e) => s + e.follows, 0);
+
+    if (overviewCards[0]) { overviewCards[0].querySelector('.value').textContent = '—'; overviewCards[0].querySelector('.sub').textContent = 'Track on X directly'; }
+    if (overviewCards[1]) { overviewCards[1].querySelector('.value').textContent = totalTweets || '0'; overviewCards[1].querySelector('.sub').textContent = 'From post-history.md'; }
+    if (overviewCards[2]) { overviewCards[2].querySelector('.value').textContent = totalEngReplies || '0'; overviewCards[2].querySelector('.sub').textContent = 'From engagement-log.md'; }
+    if (overviewCards[3]) { overviewCards[3].querySelector('.value').textContent = totalEngLikes || '0'; overviewCards[3].querySelector('.sub').textContent = 'Likes given'; }
+
+    // ── Activity chart from engagement log ──
+    if (engagement.length > 0) {
+      const actData = engagement.slice(-7).map((e, i) => ({
+        day: e.header.split('—')[0]?.trim().split(' ').pop() || `#${i+1}`,
+        tweets: 0, replies: e.replies, likes: e.likes
+      }));
+      drawBarChart('activityChart', actData, ['tweets', 'replies', 'likes'], ['#dc2626', '#f97316', '#eab308']);
+    } else {
+      document.getElementById('activityChart').innerHTML = '<div style="text-align:center;color:#555;font-size:12px;padding:40px">No engagement data yet. Agent needs to run engagement cycles.</div>';
+    }
+
+    // ── Follower chart placeholder ──
+    drawLineChart('followerChart', [], 'followers', '#dc2626');
+
+    // ── Top tweets ──
+    const topTweetsEl = document.querySelector('#tab-overview .panel:last-child');
+    if (topTweetsEl && posts.length > 0) {
+      const recent = posts.slice(-5).reverse();
+      topTweetsEl.innerHTML = '<h3>Recent Tweets</h3>' + recent.map(p =>
+        `<div style="padding:12px;background:#0a0a0a;border-radius:6px;margin-bottom:8px;border-left:3px solid #dc2626">
+          <div style="font-size:13px;color:#ddd;margin-bottom:4px">${p.text || '(no text)'}</div>
+          <div style="font-size:11px;color:#555">${p.type} — ${p.date}${p.url ? ` — <a href="${p.url}" style="color:#dc2626" target="_blank">View</a>` : ''}</div>
+        </div>`
+      ).join('');
+    }
+
+    // ── Self-reflection ──
+    const reflectBox = document.querySelector('#tab-reflect .panel:first-child div[style*="background:#0a0a0a"]');
+    if (reflectBox && reflection) {
+      reflectBox.innerHTML = `<pre style="font-size:12px;color:#aaa;white-space:pre-wrap;line-height:1.6;margin:0">${reflection}</pre>`;
+    }
+
+    // ── Costs ──
+    const costCards = document.querySelectorAll('#tab-costs .metric-card');
+    if (costs.length > 0) {
+      const totalCost = costs.reduce((s, c) => s + c.cost, 0);
+      const lastTotal = costs[costs.length - 1]?.total || totalCost;
+      const daysInMonth = 30;
+      const daysSoFar = Math.max(1, costs.length);
+      const projected = (lastTotal / daysSoFar) * daysInMonth;
+      const remaining = Math.max(0, 50 - lastTotal);
+      const pct = Math.round((remaining / 50) * 100);
+
+      if (costCards[0]) { costCards[0].querySelector('.value').textContent = '$' + totalCost.toFixed(2); }
+      if (costCards[1]) { costCards[1].querySelector('.value').textContent = '$' + lastTotal.toFixed(2); }
+      if (costCards[2]) { costCards[2].querySelector('.value').textContent = '$' + projected.toFixed(2); costCards[2].querySelector('.sub').textContent = projected > 50 ? 'Over budget!' : 'Within budget'; }
+      if (costCards[3]) { costCards[3].querySelector('.value').textContent = pct + '%'; costCards[3].querySelector('.sub').textContent = '$' + remaining.toFixed(2) + ' left'; }
+
+      // Cost chart
+      const costByDay = {};
+      costs.forEach(c => {
+        if (!costByDay[c.date]) costByDay[c.date] = { day: c.date, claude: 0, xapi: 0 };
+        if (c.service.toLowerCase().includes('claude')) costByDay[c.date].claude += c.cost;
+        else costByDay[c.date].xapi += c.cost;
+      });
+      drawBarChart('costChart', Object.values(costByDay).slice(-7), ['claude', 'xapi'], ['#dc2626', '#f97316']);
+    } else {
+      document.getElementById('costChart').innerHTML = '<div style="text-align:center;color:#555;font-size:12px;padding:40px">No cost data yet. Populates from api-costs.md.</div>';
+    }
+  }
+
+  // ── Agent toggle (informational only) ──
+  function toggleAgent() {
+    alert('Start/stop the agent from your terminal:\\n\\n  Start: bash ~/the-audacity-timeline/start.sh\\n  Stop: Ctrl+C in the terminal running OpenClaw');
+  }
+
+  // ── Save config ──
+  function saveConfig() {
+    alert('API keys are read from ~/.openclaw/.env\\nEdit that file directly to update credentials.');
+  }
+
+  // ── Init: fetch immediately, then every 30s ──
+  refresh();
+  setInterval(refresh, 30000);
+</script>
+</body>
+</html>

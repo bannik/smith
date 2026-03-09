@@ -1,0 +1,50 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "~/the-audacity-timeline",
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-5"
+      },
+      "heartbeat": {
+        "every": "30m",
+        "target": "last"
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "anthropic": {
+        "baseUrl": "https://api.anthropic.com",
+        "apiKey": "${ANTHROPIC_API_KEY}",
+        "api": "anthropic-messages",
+        "models": [
+          {
+            "id": "claude-sonnet-4-5",
+            "name": "Claude Sonnet"
+          }
+        ]
+      }
+    }
+  },
+  "skills": {
+    "load": {
+      "extraDirs": ["~/the-audacity-timeline/skills"]
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
+      "dmPolicy": "pairing",
+      "allowFrom": ["${TELEGRAM_CHAT_ID}"]
+    }
+  },
+  "env": {
+    "vars": {
+      "TWITTER_API_KEY": "${TWITTER_API_KEY}",
+      "TWITTER_API_SECRET": "${TWITTER_API_SECRET}",
+      "TWITTER_ACCESS_TOKEN": "${TWITTER_ACCESS_TOKEN}",
+      "TWITTER_ACCESS_TOKEN_SECRET": "${TWITTER_ACCESS_TOKEN_SECRET}"
+    }
+  }
+}

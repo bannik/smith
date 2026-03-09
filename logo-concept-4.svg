@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Solid black circle -->
+  <circle cx="200" cy="200" r="200" fill="#0A0A0A"/>
+
+  <!-- Red border ring -->
+  <circle cx="200" cy="200" r="190" fill="none" stroke="#DC2626" stroke-width="4"/>
+
+  <!-- Giant "AT" monogram -->
+  <text x="196" y="250" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="180" font-weight="900" fill="#FFFFFF" letter-spacing="-8">AT</text>
+
+  <!-- Small red dot as period / breaking news indicator -->
+  <circle cx="310" cy="240" r="10" fill="#DC2626"/>
+
+  <!-- Hairline under the monogram -->
+  <rect x="70" y="270" width="260" height="1.5" fill="#333333"/>
+
+  <!-- Micro tagline -->
+  <text x="200" y="310" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="400" fill="#555555" letter-spacing="4">THE AUDACITY TIMELINE</text>
+</svg>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0D0D0D"/>
+      <stop offset="100%" style="stop-color:#1A1A2E"/>
+    </linearGradient>
+    <linearGradient id="accent1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF4444"/>
+      <stop offset="100%" style="stop-color:#FF6B35"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="200" cy="200" r="200" fill="url(#bg1)"/>
+
+  <!-- Thin red accent line across top -->
+  <rect x="60" y="95" width="280" height="3" fill="url(#accent1)" rx="1.5"/>
+
+  <!-- "THE" small text -->
+  <text x="200" y="85" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="300" fill="#888888" letter-spacing="12">THE</text>
+
+  <!-- "AUDACITY" main text -->
+  <text x="200" y="155" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="52" font-weight="900" fill="#FFFFFF" letter-spacing="4">AUDACITY</text>
+
+  <!-- "TIMELINE" below -->
+  <text x="200" y="195" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="32" font-weight="300" fill="#CCCCCC" letter-spacing="14">TIMELINE</text>
+
+  <!-- Red underline -->
+  <rect x="60" y="210" width="280" height="3" fill="url(#accent1)" rx="1.5"/>
+
+  <!-- Tagline -->
+  <text x="200" y="255" text-anchor="middle" font-family="'Georgia', serif" font-size="16" font-style="italic" fill="#666666">News. Commentary. Mostly disbelief.</text>
+
+  <!-- Breaking news ticker dots -->
+  <circle cx="130" cy="290" r="4" fill="#FF4444"/>
+  <circle cx="200" cy="290" r="4" fill="#FF4444" opacity="0.6"/>
+  <circle cx="270" cy="290" r="4" fill="#FF4444" opacity="0.3"/>
+</svg>
