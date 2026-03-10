@@ -111,8 +111,7 @@ Environment=HOME=/home/agent
 Environment=NODE_ENV=production
 EnvironmentFile=/home/agent/.openclaw/.env
 
-ExecStart=/usr/bin/openclaw gateway start
-ExecStop=/usr/bin/openclaw gateway stop
+ExecStart=/usr/bin/openclaw gateway run
 
 Restart=always
 RestartSec=30
@@ -120,10 +119,6 @@ RestartSec=30
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=audacity-agent
-
-NoNewPrivileges=true
-ProtectSystem=strict
-ReadWritePaths=/home/agent
 
 [Install]
 WantedBy=multi-user.target
@@ -151,10 +146,6 @@ RestartSec=10
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=audacity-dashboard
-
-NoNewPrivileges=true
-ProtectSystem=strict
-ReadWritePaths=/home/agent
 
 [Install]
 WantedBy=multi-user.target
