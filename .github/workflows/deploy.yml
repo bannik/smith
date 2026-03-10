@@ -17,11 +17,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.HETZNER_SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: ssh-keyscan -H ${{ secrets.HETZNER_SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Deploy agent workspace
         run: |
@@ -33,33 +34,20 @@ jobs:
             --exclude='*.log' \
             --exclude='logo-*.svg' \
             --exclude='logo-preview.html' \
-            -e "ssh -i ~/.ssh/deploy_key" \
             ./ ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_SERVER_IP }}:/home/agent/the-audacity-timeline/
 
       - name: Restart services
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_SERVER_IP }} << 'EOF'
-            # Fix ownership
+          ssh ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_SERVER_IP }} << 'EOF'
             sudo chown -R agent:agent /home/agent/the-audacity-timeline
-
-            # Copy updated config to openclaw dir
             cp /home/agent/the-audacity-timeline/openclaw.json /home/agent/.openclaw/openclaw.json
-
-            # Restart agent gateway + dashboard
             sudo systemctl restart audacity-agent
             sudo systemctl restart audacity-dashboard
-
-            # Verify both started
             sleep 3
             echo "--- Agent status ---"
             sudo systemctl is-active audacity-agent || true
             echo "--- Dashboard status ---"
             sudo systemctl is-active audacity-dashboard || true
             curl -sf http://localhost:3847/ > /dev/null && echo "Dashboard: OK" || echo "Dashboard: waiting..."
-
             echo "Deploy complete!"
           EOF
-
-      - name: Cleanup SSH
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
