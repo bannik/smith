@@ -289,7 +289,7 @@ const server = http.createServer((req, res) => {
       code_challenge: pkce.challenge,
       code_challenge_method: 'S256'
     });
-    res.writeHead(302, { Location: `https://twitter.com/i/oauth2/authorize?${params}` });
+    res.writeHead(302, { Location: `https://x.com/i/oauth2/authorize?${params}` });
     res.end();
     return;
   }
