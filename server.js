@@ -329,7 +329,13 @@ const server = http.createServer((req, res) => {
       headers['Authorization'] = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     }
 
+    console.log('[oauth] client_id:', clientId);
+    console.log('[oauth] client_secret present:', !!clientSecret, 'length:', clientSecret?.length);
+    console.log('[oauth] using auth header:', !!headers['Authorization']);
+    console.log('[oauth] redirect_uri:', `http://${req.headers.host}/callback`);
+
     httpsPost('https://api.twitter.com/2/oauth2/token', body, headers).then(tokens => {
+      console.log('[oauth] token response:', JSON.stringify(tokens));
       if (tokens.access_token) {
         appendEnv('TWITTER_OAUTH2_ACCESS_TOKEN', tokens.access_token);
         if (tokens.refresh_token) {
