@@ -323,12 +323,13 @@ const server = http.createServer((req, res) => {
       code_verifier: pkceState.verifier
     }).toString();
 
-    const authHeader = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    // Use Basic auth for confidential clients, no auth header for public clients
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    if (clientSecret) {
+      headers['Authorization'] = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    }
 
-    httpsPost('https://api.twitter.com/2/oauth2/token', body, {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': authHeader
-    }).then(tokens => {
+    httpsPost('https://api.twitter.com/2/oauth2/token', body, headers).then(tokens => {
       if (tokens.access_token) {
         appendEnv('TWITTER_OAUTH2_ACCESS_TOKEN', tokens.access_token);
         if (tokens.refresh_token) {
