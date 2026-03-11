@@ -1,4 +1,6 @@
 const http = require('http');
+const https = require('https');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -6,6 +8,59 @@ const { execSync } = require('child_process');
 const PORT = 3847;
 const WORKSPACE = path.join(require('os').homedir(), 'the-audacity-timeline');
 const ENV_PATH = path.join(require('os').homedir(), '.openclaw', '.env');
+
+// ── OAuth 2.0 PKCE helpers ──
+let pkceState = {};
+
+function generatePKCE() {
+  const verifier = crypto.randomBytes(32).toString('base64url');
+  const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+  const state = crypto.randomBytes(16).toString('hex');
+  return { verifier, challenge, state };
+}
+
+function getEnvValue(key) {
+  try {
+    const raw = fs.readFileSync(ENV_PATH, 'utf8');
+    const match = raw.match(new RegExp(`^${key}=(.+)$`, 'm'));
+    return match ? match[1].trim() : '';
+  } catch { return ''; }
+}
+
+function appendEnv(key, value) {
+  try {
+    let raw = fs.readFileSync(ENV_PATH, 'utf8');
+    const regex = new RegExp(`^${key}=.*$`, 'm');
+    if (regex.test(raw)) {
+      raw = raw.replace(regex, `${key}=${value}`);
+    } else {
+      raw = raw.trimEnd() + `\n${key}=${value}\n`;
+    }
+    fs.writeFileSync(ENV_PATH, raw);
+  } catch (e) { console.error('Failed to write env:', e.message); }
+}
+
+function httpsPost(url, body, headers) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.request({
+      hostname: parsed.hostname,
+      path: parsed.pathname + parsed.search,
+      method: 'POST',
+      headers
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch { reject(new Error(data)); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 // ── Read a workspace file safely ──
 function readFile(name) {
@@ -212,6 +267,90 @@ const server = http.createServer((req, res) => {
       reflection: parseReflectionLog(),
       costs: parseCosts()
     }));
+    return;
+  }
+
+  // ── OAuth 2.0 PKCE: Start auth flow ──
+  if (req.url === '/auth/twitter') {
+    const clientId = getEnvValue('TWITTER_CLIENT_ID');
+    if (!clientId) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('TWITTER_CLIENT_ID not set in .env');
+      return;
+    }
+    const pkce = generatePKCE();
+    pkceState = pkce;
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: `http://${req.headers.host}/callback`,
+      scope: 'tweet.read tweet.write users.read follows.read follows.write like.read like.write offline.access',
+      state: pkce.state,
+      code_challenge: pkce.challenge,
+      code_challenge_method: 'S256'
+    });
+    res.writeHead(302, { Location: `https://twitter.com/i/oauth2/authorize?${params}` });
+    res.end();
+    return;
+  }
+
+  // ── OAuth 2.0 PKCE: Handle callback ──
+  if (req.url?.startsWith('/callback')) {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    const error = url.searchParams.get('error');
+
+    if (error) {
+      res.writeHead(400, { 'Content-Type': 'text/html' });
+      res.end(`<h1>Auth failed</h1><p>${error}</p>`);
+      return;
+    }
+
+    if (!code || state !== pkceState.state) {
+      res.writeHead(400, { 'Content-Type': 'text/html' });
+      res.end('<h1>Invalid callback</h1><p>State mismatch or missing code. <a href="/auth/twitter">Try again</a></p>');
+      return;
+    }
+
+    const clientId = getEnvValue('TWITTER_CLIENT_ID');
+    const clientSecret = getEnvValue('TWITTER_CLIENT_SECRET');
+    const body = new URLSearchParams({
+      code,
+      grant_type: 'authorization_code',
+      client_id: clientId,
+      redirect_uri: `http://${req.headers.host}/callback`,
+      code_verifier: pkceState.verifier
+    }).toString();
+
+    const authHeader = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+    httpsPost('https://api.twitter.com/2/oauth2/token', body, {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': authHeader
+    }).then(tokens => {
+      if (tokens.access_token) {
+        appendEnv('TWITTER_OAUTH2_ACCESS_TOKEN', tokens.access_token);
+        if (tokens.refresh_token) {
+          appendEnv('TWITTER_OAUTH2_REFRESH_TOKEN', tokens.refresh_token);
+        }
+        pkceState = {};
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`
+          <h1>Authorized!</h1>
+          <p>OAuth 2.0 tokens saved to .env</p>
+          <p>Access token: ${tokens.access_token.substring(0, 20)}...</p>
+          ${tokens.refresh_token ? '<p>Refresh token saved (offline.access)</p>' : ''}
+          <p>Restart the agent to pick up the new tokens: <code>sudo systemctl restart audacity-agent</code></p>
+        `);
+      } else {
+        res.writeHead(400, { 'Content-Type': 'text/html' });
+        res.end(`<h1>Token exchange failed</h1><pre>${JSON.stringify(tokens, null, 2)}</pre>`);
+      }
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'text/html' });
+      res.end(`<h1>Error</h1><pre>${err.message}</pre>`);
+    });
     return;
   }
 
