@@ -89,11 +89,10 @@ Append to `engagement-log.md`:
 
 Replies via API are currently restricted by Twitter's anti-spam system for new accounts. DO NOT attempt cold replies — they will return 403.
 
-**Instead, use QUOTE TWEETS for everything you would have replied to:**
-- Find the viral tweet you want to engage with
-- Post a QUOTE TWEET with your commentary instead of a reply
-- Quote tweets use the regular tweet endpoint and are NOT restricted
-- QTs actually get MORE visibility than replies — they show on your timeline AND the original poster's notifications
+**Instead, use TWO strategies:**
+
+### Strategy A: Quote Tweets (Automated)
+For commentary that works as a standalone tweet, use QTs — they're not restricted and get MORE visibility than replies.
 
 **API call for quote tweets:**
 ```
@@ -101,7 +100,35 @@ POST https://api.twitter.com/2/tweets
 { "text": "Your commentary", "quote_tweet_id": "ORIGINAL_TWEET_ID" }
 ```
 
-**When replies unlock** (account 3+ weeks old, 200+ followers), test with one reply per cycle. If it works, gradually increase.
+### Strategy B: Telegram Draft Replies (Human-in-the-Loop)
+For replies that MUST be direct replies (not QTs), draft the reply and send it to the owner via Telegram with a one-tap post link.
+
+**When you find a viral tweet worth replying to, send a Telegram message in this format:**
+
+```
+🔥 Reply opportunity
+
+@handle: "[first 100 chars of their tweet]..."
+📊 [likes] likes · [RTs] RTs · [time] ago
+
+💬 Draft reply:
+"[your crafted reply]"
+
+👉 Tap to reply: https://x.com/intent/tweet?in_reply_to=[TWEET_ID]&text=[URL_ENCODED_REPLY]
+
+Or tap to QT instead: https://x.com/intent/tweet?url=https://x.com/[handle]/status/[TWEET_ID]&text=[URL_ENCODED_REPLY]
+```
+
+The intent link opens X app/website with the reply pre-filled. The owner taps, reviews, and posts. This bypasses API restrictions because the human is posting.
+
+**Rules for Telegram drafts:**
+- Max 5 draft replies per day (don't spam the owner)
+- Only for HIGH-VALUE opportunities (viral tweets, 1000+ likes, perfect brand-voice moment)
+- Always provide both a reply link AND a QT link as fallback
+- URL-encode the reply text (spaces → %20, newlines → %0A)
+- Keep draft replies under 200 characters (punchy wins)
+
+**When replies unlock** (account 3+ weeks old, 200+ followers), test with one API reply per cycle. If it works, gradually increase and phase out the Telegram drafts.
 
 ## Rate Limits
 
